@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Scholarship Monitoring and Academic Compliance System">
+  <title>Scholarship Monitoring System</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">S</span><span>Scholarship Monitor<small>Academic compliance portal</small></span></a>
+    <div class="top-actions"><span id="connectionStatus" class="status-pill">Checking connection…</span><button id="logoutBtn" class="button button-light hidden" type="button">Log out</button></div>
+  </header>
+
+  <main class="container">
+    <section id="authView" class="auth-layout">
+      <div class="intro-panel">
+        <p class="eyebrow">STUDENT SCHOLARSHIP PORTAL</p>
+        <h1>Keep your scholarship journey <span>on track.</span></h1>
+        <p>Submit semester records, check academic compliance, and keep track of renewal decisions in one place.</p>
+        <ul class="feature-list"><li>Semester-based academic submissions</li><li>Program-specific policy checks</li><li>Verification and decision history</li></ul>
+        <p class="small-note">Demonstration project for Systems Analysis and Design.</p>
+      </div>
+      <div class="panel auth-panel">
+        <div class="tab-row"><button class="tab active" data-auth-tab="login" type="button">Log in</button><button class="tab" data-auth-tab="signup" type="button">Create account</button></div>
+        <form id="loginForm" class="form-stack">
+          <h2>Welcome back</h2><p class="muted">Sign in to continue to your portal.</p>
+          <label>Email address<input id="loginEmail" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+          <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Enter your password"></label>
+          <button class="button button-primary full-width" type="submit">Log in</button>
+        </form>
+        <form id="signupForm" class="form-stack hidden">
+          <h2>Create a scholar account</h2><p class="muted">Staff accounts must be created by the system administrator.</p>
+          <label>Full name<input id="signupName" type="text" maxlength="120" required placeholder="Full name"></label>
+          <label>Student ID<input id="signupStudentId" type="text" maxlength="40" required placeholder="e.g. 2026-0001"></label>
+          <label>Email address<input id="signupEmail" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+          <label>Password<input id="signupPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters"></label>
+          <button class="button button-primary full-width" type="submit">Create account</button>
+        </form>
+        <p id="authMessage" class="message" role="status"></p>
+      </div>
+    </section>
+
+    <section id="appView" class="hidden">
+      <div class="welcome-row"><div><p class="eyebrow" id="roleLabel">PORTAL</p><h1 id="welcomeTitle">Dashboard</h1><p class="muted" id="welcomeSubtitle">Your scholarship overview.</p></div><div class="user-chip"><span class="avatar" id="userInitials">S</span><span><strong id="userName">User</strong><small id="userEmail"></small></span></div></div>
+      <nav id="mainNav" class="nav-tabs" aria-label="Main navigation">
+        <button class="nav-tab active" data-view="dashboard" type="button">Dashboard</button>
+        <button class="nav-tab" data-view="submissions" type="button">Submissions</button>
+        <button class="nav-tab staff-only hidden" data-view="management" type="button">Scholar management</button>
+        <button class="nav-tab staff-only hidden" data-view="review" type="button">Review & renewal</button>
+        <button class="nav-tab" data-view="history" type="button">History</button>
+      </nav>
+
+      <section id="dashboardSection" class="content-section">
+        <div class="section-heading"><div><h2>Overview</h2><p class="muted">A quick view of the selected semester.</p></div><label class="compact-label">Semester<select id="dashboardSemester"><option value="2026-2027|1">AY 2026–2027 · Semester 1</option></select></label></div>
+        <div id="statsGrid" class="stats-grid"></div>
+        <div class="two-column">
+          <div class="panel"><div class="panel-heading"><h3>Recent submissions</h3><button class="text-button" data-go="submissions" type="button">View all</button></div><div id="recentSubmissions" class="table-wrap"></div></div>
+          <div class="panel"><h3>Important deadline</h3><div class="deadline-date">06 <span>NOV 2026</span></div><p>Submission deadline: <strong>5:00 PM Philippine time</strong>.</p><p class="muted small">A submission at the exact deadline is considered on time. A later submission is marked late.</p></div>
+        </div>
+      </section>
+
+      <section id="submissionsSection" class="content-section hidden">
+        <div class="section-heading"><div><h2>Semester submissions</h2><p class="muted">Submit academic summaries and track verification status.</p></div><button id="showSubmissionForm" class="button button-primary scholar-only" type="button">+ New submission</button></div>
+        <form id="submissionForm" class="panel form-grid hidden">
+          <div class="panel-heading span-2"><div><h3>Submit academic record</h3><p class="muted small">Use your official academic summary. The evidence field accepts a document reference or URL.</p></div><button id="cancelSubmission" class="icon-button" type="button" aria-label="Close form">✕</button></div>
+          <label>Academic year<select id="academicYear" required><option value="2026-2027">2026–2027</option></select></label>
+          <label>Semester<select id="semester" required><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="Summer">Summer</option></select></label>
+          <label>GWA (1.00–5.00)<input id="gwa" type="number" min="1" max="5" step="0.01" required placeholder="e.g. 2.00"></label>
+          <label>Enrolled units<input id="units" type="number" min="0" step="1" required placeholder="e.g. 18"></label>
+          <label>Failed subjects<input id="failedCount" type="number" min="0" step="1" required value="0"></label>
+          <label>Incomplete grades<input id="incompleteCount" type="number" min="0" step="1" required value="0"></label>
+          <label>Dropped subjects<input id="droppedCount" type="number" min="0" step="1" required value="0"></label>
+          <label class="span-2">Grade document reference<input id="evidenceRef" type="text" maxlength="500" required placeholder="Document link or reference number"></label>
+          <div class="span-2 form-footer"><p class="muted small">Submitting again for the same academic year and semester is not allowed.</p><button class="button button-primary" type="submit">Submit record</button></div>
+        </form>
+        <div id="mySubmissions" class="panel table-wrap"></div>
+      </section>
+
+      <section id="managementSection" class="content-section hidden staff-only">
+        <div class="section-heading"><div><h2>Scholar management</h2><p class="muted">Assign registered scholar accounts to persisted scholarship policies.</p></div></div>
+        <form id="assignmentForm" class="panel form-grid">
+          <div class="span-2"><h3>Assign a scholarship program</h3><p class="muted small">The scholar must create an account first. This form does not create authentication accounts.</p></div>
+          <label>Scholar<select id="scholarSelect" required><option value="">Loading scholars…</option></select></label>
+          <label>Scholarship policy<select id="programSelect" required><option value="">Select policy</option></select></label>
+          <div class="span-2 form-footer"><button class="button button-primary" type="submit">Save assignment</button></div>
+        </form>
+        <div class="panel"><h3>Current assignments</h3><div id="assignmentsTable" class="table-wrap"></div></div>
+      </section>
+
+      <section id="reviewSection" class="content-section hidden staff-only">
+        <div class="section-heading"><div><h2>Review & renewal</h2><p class="muted">Verify evidence, evaluate verified records, and record renewal decisions.</p></div><div class="filter-row"><select id="reviewStatusFilter" aria-label="Filter by verification status"><option value="all">All verification statuses</option><option>Pending</option><option>Verified</option><option>Returned</option></select><select id="reviewComplianceFilter" aria-label="Filter by compliance"><option value="all">All compliance results</option><option>Not evaluated</option><option>Compliant</option><option>With Deficiency</option></select></div></div>
+        <div id="reviewTable" class="panel table-wrap"></div>
+      </section>
+
+      <section id="historySection" class="content-section hidden">
+        <div class="section-heading"><div><h2>Decision history</h2><p class="muted">An audit trail of verification, evaluation, and renewal actions.</p></div></div>
+        <div id="historyTable" class="panel table-wrap"></div>
+      </section>
+      <p id="appMessage" class="message" role="status"></p>
+    </section>
+  </main>
+  <footer class="footer"><span>Scholarship Monitoring System</span><span>HTML · CSS · JavaScript · Supabase</span></footer>
+
+  <dialog id="reviewDialog" class="review-dialog">
+    <form id="reviewForm" class="form-stack">
+      <div class="panel-heading"><h2 id="reviewDialogTitle">Review submission</h2><button id="closeReviewDialog" class="icon-button" type="button" aria-label="Close">✕</button></div>
+      <p id="reviewScholarDetails" class="muted small"></p>
+      <div id="policyChecks" class="policy-checks"></div>
+      <label id="reviewReasonLabel">Reason / decision note<textarea id="reviewReason" rows="3" maxlength="1000" placeholder="Enter a clear reason or note"></textarea></label>
+      <div id="reviewActions" class="dialog-actions"></div>
+    </form>
+  </dialog>
+</body>
+</html>
